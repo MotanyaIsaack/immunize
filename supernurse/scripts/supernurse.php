@@ -1,5 +1,8 @@
 <?php
+// Include the database connection file
 include_once('../../database/connection.php');
+// Include the send_email file
+include_once('../../global_scripts/sendmail.php');
 session_start();
 //Function that checks if a user is registered
 function checkIfUserExists($conn,$data)
@@ -40,6 +43,19 @@ if (isset($_GET['function'])) {
                     $password = (!empty($_POST['password']) ? password_hash($_POST['password'],PASSWORD_DEFAULT) : false);
                     $bloodgroup = (!empty($_POST['bloodgroup']) ? $_POST['bloodgroup'] : false);
                     $roleID = 4;
+                    $subject = "Login Credentials";
+                    $contents = 
+                    '
+                        <div>
+                            <p>Hello '.$fullname.',</p>
+                            <p>You have been succesfully registered to Immunize please use the following as your credentials to login to the system.</p>
+                            <p><strong>Email: </strong>'.$email.'</p>
+                            <p><strong>Password: </strong>'.$_POST['password'].'</p>
+                            <p>Do not reply to this email</p>
+                            <p>Regards,</p>
+                            <p>Immunize</p>
+                        </div>
+                    ';
                     $data = [
                         'fullname' => $fullname,
                         'email' => $email,
@@ -55,9 +71,15 @@ if (isset($_GET['function'])) {
                         exit();
                     }else{
                         if(!checkIfUserExists($conn,$data) === true){
-                            echo (insertNurse($conn,$data) === TRUE ? 
-                                    json_encode(['msg' => "success",'data' => $data['fullname']." Added Successfully"]) :
-                                    json_encode(['msg' => "danger",'data' => "An error occured"]));
+                            if(insertNurse($conn,$data) === TRUE ){
+                                echo (send_mail($fullname,$email,$subject,$contents) === true ?
+                                    json_encode(['msg' => "success",'data' => $data['fullname']." Added Successfully and email sent"]) :
+                                    json_encode(['msg' => "danger",'data' => $data['fullname']." Added Successfully and email not sent"])
+                                );
+                                
+                            }else{
+                                echo json_encode(['msg' => "danger",'data' => "An error occured"]);
+                            }
                         }else{
                             echo json_encode(['msg' => "danger",'data' => $data['fullname']." Already Exists"]) ;
                         }
