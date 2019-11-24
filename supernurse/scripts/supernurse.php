@@ -5,8 +5,7 @@ include_once('../../database/connection.php');
 include_once('../../global_scripts/sendmail.php');
 session_start();
 //Function that checks if a user is registered
-function checkIfUserExists($conn,$data)
-{
+function checkIfUserExists($conn,$data){
     $sql = "SELECT * FROM tbl_users 
             WHERE email='".$data['email']."' AND username='".$data['username']."'";
     $result = $conn->query($sql);
@@ -18,6 +17,23 @@ function insertNurse($conn,$data){
             VALUES('".$data['fullname']."','".$data['username']."','".$data['email']."','".$data['password']."',
                     '".$data['phonenumber']."','".$data['bloodgroup']."',".$data['role_id'].")";
     return ($conn->query($sql) === true ? true : false);
+}
+
+// Function that suspends a user
+function suspendUser($conn,$data){
+    $sql = "UPDATE tbl_users SET status = 1 WHERE user_id = ".$data."";
+    // echo die(json_encode($sql));
+    $conn->query($sql);
+    return ($conn->affected_rows > 0 ? true : false);
+
+}
+// Function that unsuspends a user
+function unsuspendUser($conn,$data){
+    $sql = "UPDATE tbl_users SET status = 0 WHERE user_id = ".$data."";
+    // echo die(json_encode($sql));
+    $conn->query($sql);
+    return ($conn->affected_rows > 0 ? true : false);
+
 }
 
 if (isset($_GET['function'])) {
@@ -34,7 +50,6 @@ if (isset($_GET['function'])) {
             call_user_func(
                 function ($conn){
                     $firstname = (!empty($_POST['firstname']) ? $_POST['firstname'] : false);
-                    // die(var_dump($firstname));
                     $lastname = (!empty($_POST['lastname']) ? $_POST['lastname'] : false);
                     $fullname = $firstname." ".$lastname;
                     $email = (!empty($_POST['email']) ? $_POST['email'] : false);
@@ -94,16 +109,47 @@ if (isset($_GET['function'])) {
                     $sql = "SELECT * FROM tbl_users WHERE role_id=4";
                     $results = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
                     $count = 0;
-                    foreach ($results as $result => $value) {
-                        $results[$result]['number'] = ++$count;
-                        $results[$result]['actions'] = 
-                        '
-                            <button type="button" class="btn btn-xs btn-primary mr-5 mb-5">
-                            <i class="si si-eye mr-5"></i>Suspend
-                            </button>
-                        ';
+                    for ($i=0; $i < sizeof($results); $i++) { 
+                        $results[$i]['number'] = ++$count;
+                        if ($results[$i]['status'] === '0') {
+                            $results[$i]['actions'] = 
+                            '
+                                <button type="button" id="action" data-value="suspend" class="btn btn-xs btn-primary mr-5 mb-5">
+                                <i class="si si-lock mr-5"></i>Suspend
+                                </button>
+                            ';
+                        }else{
+                            $results[$i]['actions'] = 
+                            '
+                                <button type="button" id="action" data-value="unsuspend" class="btn btn-xs btn-primary mr-5 mb-5">
+                                <i class="si si-lock-open mr-5"></i>Unsuspend
+                                </button>
+                            ';
+                        }
                     }
                     echo json_encode($results);
+                },$conn
+            );
+        break;
+        case 'suspendNurse':
+            call_user_func(
+                function ($conn){
+                    $data = $_POST['user_id'];
+                    echo (suspendUser($conn,$data) === true ?
+                            json_encode(['msg'=> 'success','data' => $_POST['fullname'].' has been successfully suspended']) :
+                            json_encode(['msg'=> 'danger','data' => $_POST['fullname'].' has not been successfully suspended'])
+                    );
+                },$conn
+            );
+        break;
+        case 'unsuspendNurse':
+            call_user_func(
+                function ($conn){
+                    $data = $_POST['user_id'];
+                    echo (unsuspendUser($conn,$data) === true ?
+                            json_encode(['msg'=> 'success','data' => $_POST['fullname'].' has been successfully suspended']) :
+                            json_encode(['msg'=> 'danger','data' => $_POST['fullname'].' has not been successfully suspended'])
+                    );
                 },$conn
             );
         break;

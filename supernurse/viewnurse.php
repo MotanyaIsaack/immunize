@@ -42,7 +42,7 @@
 
     <script>
         $(document).ready(function(){
-            $("#tbl_viewchild").DataTable({
+           const view_child_table = $("#tbl_viewchild").DataTable({
                 "paging": false,
                 "ordering": false,
                 "ajax": {
@@ -67,7 +67,35 @@
                     { className: "text-center", "targets": [ 6 ] }
                 ]
             });
-            
+            $("#tbl_viewchild").on('click','#action',function(event){
+                const that = event.target;
+                const action = $(this).data('value');
+                 const url = (action == "suspend" ? 
+                    "http://localhost/Projects/Fredah/vaccine/supernurse/scripts/supernurse.php?function=suspendNurse":
+                    "http://localhost/Projects/Fredah/vaccine/supernurse/scripts/supernurse.php?function=unsuspendNurse");
+                $('#tbl_viewchild #action').data('row',that.closest('tr'));
+                const row_data = view_child_table.row($(that).data('row')).data();
+                const data = JSON.stringify(row_data);
+                $.ajax({
+                    'url':url,
+                    'method':'POST',
+                    'data':row_data,
+                    'success':function(result){
+                        const data = JSON.parse(result)
+                        // console.log(data.msg);
+                        
+                        Codebase.helpers('notify', {
+                                align: 'right',             // 'right', 'left', 'center'
+                                from: 'top',                // 'top', 'bottom'
+                                type: data.msg,               // 'info', 'success', 'warning', 'danger'
+                                icon: 'fa fa-info mr-5',    // Icon class
+                                message: data.data,
+                                timer: 500
+                        });
+                        view_child_table.ajax.reload(); 
+                    }
+                });
+            });
         });
     </script>
 
